@@ -88,17 +88,25 @@ def main():
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30), flags=cv2.CASCADE_SCALE_IMAGE)
 
-        for (x, y, w, h) in faces:
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-            face_region = frame[y:y+h, x:x+w]
-            objects, recognized_faces = recognize_objects_and_faces(face_region, collection_id)
+        if len(faces) == 0:
+            # No faces detected, recognize objects in the entire frame
+            objects, recognized_faces = recognize_objects_and_faces(frame, collection_id)
+        else:
+            # Faces detected, recognize objects and faces in the face region
+            objects, recognized_faces = [], []
+            for (x, y, w, h) in faces:
+                cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                face_region = frame[y:y+h, x:x+w]
+                obj, faces_in_region = recognize_objects_and_faces(face_region, collection_id)
+                objects.extend(obj)
+                recognized_faces.extend(faces_in_region)
 
-            for obj_name, confidence in objects:
-                if obj_name.lower() in ['bottle', 'hat']:
-                    cv2.putText(frame, f'{obj_name} ({confidence:.2f}%)', (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2, cv2.LINE_AA)
+        for obj_name, confidence in objects:
+            if obj_name.lower() in ['bottle', 'hat']:
+                cv2.putText(frame, f'{obj_name} ({confidence:.2f}%)', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2, cv2.LINE_AA)
 
-            for face_id, similarity in recognized_faces:
-                cv2.putText(frame, f'{face_id} ({similarity:.2f}%)', (x, y+h+20), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2, cv2.LINE_AA)
+        for face_id, similarity in recognized_faces:
+            cv2.putText(frame, f'{face_id} ({similarity:.2f}%)', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2, cv2.LINE_AA)
 
         cv2.imshow('Real-time Object and Face Recognition - Bottle, Hat, and Person Detection', frame)
 
@@ -108,3 +116,5 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 
+if __name__ == "__main__":
+    main()
